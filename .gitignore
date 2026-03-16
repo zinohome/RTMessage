@@ -6,3 +6,6 @@ sync/reports/*.tsv
 sync/reports/*.md
 # 保留目录本身
 !sync/reports/.gitkeep
+
+# 本地 VS Code 配置（避免误提交个人环境设置）
+.vscode/
