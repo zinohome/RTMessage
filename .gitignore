@@ -1,0 +1,8 @@
+# Redpanda-data/ 是只读参考目录，不纳入本项目 git 管理
+Redpanda-data/
+
+# 审计脚本生成的报告（本地临时文件，不提交）
+sync/reports/*.tsv
+sync/reports/*.md
+# 保留目录本身
+!sync/reports/.gitkeep

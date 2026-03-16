@@ -1,0 +1,160 @@
+# protected.yaml — 禁止改名的受保护模式
+#
+# 本文件定义任何情况下都不可改名的字符串和文件路径。
+# 违反此规则将导致 Kafka 协议兼容性断裂或外部 API 契约破坏。
+#
+# severity 字段:
+#   CRITICAL  - 改名必然导致所有 Kafka 客户端断连
+#   HIGH      - 改名会破坏部分客户端或外部工具的兼容性
+#   MEDIUM    - 改名影响外部文档或监控，需要配套迁移方案
+
+# ── 第一阶段总策略（治理规则）───────────────────────────────────────────────
+phase1_policy:
+  description: >
+    第一步只改 Redpanda 自有品牌可见层；协议层和第三方依赖层全部禁改。
+  rules:
+    - "只允许修改品牌可见层：UI 文案、文档、二进制名、CLI 显示名、日志品牌文案"
+    - "协议层禁改：Kafka/Schema Registry/OpenAPI/Proto 对外契约"
+    - "第三方依赖层禁改：外部 module path、外部库品牌和协议实现"
+
+# ── Kafka 协议 wire 格式（CRITICAL）────────────────────────────────────────
+kafka_protocol_api_names:
+  severity: CRITICAL
+  description: >
+    Kafka 协议 API 名称是 wire 格式的一部分，硬编码在所有 Kafka 客户端 SDK 中。
+    任何修改都会导致客户端无法连接。
+  file_path_patterns:
+    - "src/v/kafka/protocol/**"
+    - "src/v/kafka/server/handlers/**"
+    - "**/*_generated.go"
+    - "**/kafkaprotocol/**"
+  string_patterns:
+    - "ApiVersions"
+    - "Produce"
+    - "Fetch"
+    - "ListOffsets"
+    - "Metadata"
+    - "OffsetCommit"
+    - "OffsetFetch"
+    - "FindCoordinator"
+    - "JoinGroup"
+    - "Heartbeat"
+    - "LeaveGroup"
+    - "SyncGroup"
+    - "DescribeGroups"
+    - "ListGroups"
+    - "SaslHandshake"
+    - "SaslAuthenticate"
+    - "CreateTopics"
+    - "DeleteTopics"
+    - "DeleteRecords"
+    - "InitProducerId"
+    - "OffsetForLeaderEpoch"
+    - "AddPartitionsToTxn"
+    - "TxnOffsetCommit"
+    - "DescribeConfigs"
+    - "AlterConfigs"
+    - "DescribeLogDirs"
+    - "IncrementalAlterConfigs"
+    - "CreatePartitions"
+    - "DescribeAcls"
+    - "CreateAcls"
+    - "DeleteAcls"
+    - "DescribeTransactions"
+    - "ListTransactions"
+
+kafka_internal_topics:
+  severity: CRITICAL
+  description: >
+    Kafka 内部 topic 名称由协议规范定义，所有客户端都依赖这些固定名称。
+  string_patterns:
+    - "__consumer_offsets"
+    - "__transaction_state"
+    - "__redpanda_e2e_probe"
+    - "__redpanda.node_management"
+  note: >
+    注意: __redpanda 前缀的内部 topic 是 redpanda 专有，理论上可改名，
+    但需要同步更新所有依赖它们的客户端配置，风险较高，建议单独评估。
+
+kafka_record_format:
+  severity: CRITICAL
+  description: "Kafka 消息格式中的固定字段，不可修改"
+  string_patterns:
+    - "magic"
+    - "attributes"
+    - "timestamp_delta"
+    - "offset_delta"
+    - "key_length"
+    - "value_length"
+
+# ── Protobuf wire 格式（HIGH）───────────────────────────────────────────────
+protobuf_wire:
+  severity: HIGH
+  description: >
+    Protobuf .proto 文件中的字段编号(field number)决定 wire 格式，
+    不可修改。字段名称(field name)可以修改，但会破坏 JSON 序列化兼容性。
+    所有 .proto 文件需人工逐一审查。
+  file_path_patterns:
+    - "**/*.proto"
+    - "**/*.pb.go"
+    - "**/*.pb.cc"
+    - "**/*.pb.h"
+  action: REVIEW  # 不完全禁止，但要求人工审查每一个
+
+# ── Schema Registry 兼容 API（HIGH）─────────────────────────────────────────
+schema_registry_api:
+  severity: HIGH
+  description: >
+    Confluent Schema Registry API 路径是行业标准，所有使用 Schema Registry
+    的客户端（Kafka Streams、Avro 序列化器等）都依赖这些路径。
+  string_patterns:
+    - "/schemas/ids/"
+    - "/subjects/"
+    - "/config"
+    - "application/vnd.schemaregistry"
+    - "application/vnd.kafka"
+  file_path_patterns:
+    - "**/schema_registry/**"
+    - "**/schemaregistry/**"
+
+# ── HTTP Proxy / Kafka REST API（HIGH）──────────────────────────────────────
+kafka_rest_api:
+  severity: HIGH
+  description: "Confluent Kafka REST Proxy 标准 API 路径"
+  string_patterns:
+    - "/topics"
+    - "/partitions"
+    - "/consumers"
+    - "application/vnd.kafka.json.v2+json"
+    - "application/vnd.kafka.binary.v2+json"
+  file_path_patterns:
+    - "**/pandaproxy/**"
+
+# ── 外部工具集成标识符（MEDIUM）─────────────────────────────────────────────
+external_tool_identifiers:
+  severity: MEDIUM
+  description: >
+    Prometheus / OpenMetrics 指标名称、Grafana 看板 ID 等外部工具依赖的标识符。
+    可以改名，但需要同步提供迁移说明和新版看板。
+  string_patterns:
+    - "vectorized_internal_rpc"  # Redpanda 内部 RPC 指标
+  action: REVIEW
+  note: "改名时需提供旧名→新名的 Prometheus metric_relabel_configs 迁移文档"
+
+# ── 跳过文件模式（不审计，不改名）──────────────────────────────────────────
+skip_file_patterns:
+  - "**/*.pb.go"          # 生成的 protobuf Go 代码
+  - "**/*.pb.cc"          # 生成的 protobuf C++ 代码
+  - "**/*.pb.h"           # 生成的 protobuf C++ 头文件
+  - "**/vendor/**"        # Go vendor 目录
+  - "**/node_modules/**"  # Node 依赖
+  - "**/.git/**"          # Git 内部目录
+  - "**/go.sum"           # Go checksum（不含品牌字符串）
+  - "**/CHANGELOG.md"     # 版本日志（仅参考）
+  - "**/licenses/**"      # 许可证文件（保持原始，不改名）
+  - "**/NOTICE"           # 版权声明（Apache 2.0 要求保留）
+  - "**/*.png"            # 图片（二进制）
+  - "**/*.jpg"
+  - "**/*.ico"
+  - "**/*.woff*"
+  - "**/*.ttf"

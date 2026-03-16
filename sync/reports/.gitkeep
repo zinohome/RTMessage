@@ -1,0 +1,2 @@
+# 此目录存放审计脚本生成的报告文件（已加入 .gitignore）
+# 运行 bash sync/audit/audit_all.sh 后，报告将出现在本目录下。

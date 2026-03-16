@@ -1,0 +1,130 @@
+# rename_rules.yaml — 品牌改名映射规则
+#
+# 本文件定义上游品牌字符串到 RT* 品牌字符串的映射。
+# 仅用于审计阶段的模式识别和改名阶段的自动替换。
+# 所有命中 protected.yaml 的模式优先级高于本文件，不会被替换。
+#
+# scope 字段说明:
+#   brand     - 品牌名称（文档、UI、错误信息）
+#   binary    - 可执行文件名
+#   cli       - 命令行工具名
+#   go_module - Go 模块路径（需专用工具，不可普通替换）
+#   config    - 配置文件名或配置键名
+#   metrics   - 监控指标前缀（注意: 现有 Grafana 看板会受影响）
+#   org       - 组织/仓库名称
+#   domain    - 域名
+
+# ── 全局规则（三个项目通用）──────────────────────────────────────────────────
+global:
+  - from: "Redpanda"
+    to: "RTMessage"
+    scope: brand
+    note: "产品品牌名，用于用户可见的文字"
+
+  - from: "redpanda"
+    to: "rtmessage"
+    scope: brand
+    note: "产品品牌名小写形式"
+
+  - from: "REDPANDA"
+    to: "RTMESSAGE"
+    scope: brand
+    note: "全大写形式，通常出现在宏/常量定义中"
+
+  - from: "redpanda-data"
+    to: "retone-projects"
+    scope: org
+    note: "GitHub 组织名，影响 Go module path 和文档链接"
+
+  - from: "redpanda.com"
+    to: "retone.tech"
+    scope: domain
+    note: "官方域名，出现在文档和帮助文本中"
+
+  - from: "Redpanda Data"
+    to: "ReTone Projects"
+    scope: brand
+    note: "公司全名"
+
+# ── RTMessage 专用规则（C++ 核心 + rpk CLI）────────────────────────────────────
+rtmessage:
+  - from: "rpk"
+    to: "rtm"
+    scope: cli
+    note: "CLI 工具名，src/go/rpk/ 下全部安全"
+
+  - from: "RPK"
+    to: "RTM"
+    scope: cli
+
+  - from: "redpanda.yaml"
+    to: "rtmessage.yaml"
+    scope: config
+    note: "主配置文件名"
+
+  - from: "redpanda_broker"
+    to: "rtmessage_broker"
+    scope: metrics
+    warn: "改名会影响已有 Prometheus/Grafana 看板，需同步更新"
+
+  - from: "redpanda_"
+    to: "rtmessage_"
+    scope: metrics
+    warn: "所有 metrics 前缀，改名前确认看板兼容方案"
+
+  - from: "namespace redpanda"
+    to: "namespace rtmessage"
+    scope: cpp_namespace
+    note: "C++ 命名空间，纯内部符号，安全"
+
+  - from: "redpanda::v8"
+    to: "rtmessage::v8"
+    scope: cpp_namespace
+
+# ── RTconnect 专用规则（Go 流处理器）─────────────────────────────────────────
+rtconnect:
+  - from: "redpanda-connect"
+    to: "rtconnect"
+    scope: binary
+
+  - from: "Redpanda Connect"
+    to: "RTconnect"
+    scope: brand
+
+  - from: "github.com/redpanda-data/connect"
+    to: "github.com/retone-projects/rtconnect"
+    scope: go_module
+    warn: "必须使用 go mod 工具链操作，不可普通字符串替换"
+
+  - from: "github.com/redpanda-data/benthos/v4"
+    to: "github.com/retone-projects/rtconnect-core/v4"
+    scope: go_module
+    warn: "benthos 上游依赖路径，改名会大幅增加 fork 维护成本，建议 REVIEW 后决策"
+
+  - from: "rpk connect"
+    to: "rtm connect"
+    scope: cli
+
+  - from: "Bloblang"
+    to: "Bloblang"
+    scope: brand
+    note: "保留原名，Bloblang 是独立语言品牌，建议不改"
+
+# ── RTconsole 专用规则（Go + TypeScript 控制台）──────────────────────────────
+rtconsole:
+  - from: "redpanda-console"
+    to: "rtconsole"
+    scope: binary
+
+  - from: "Redpanda Console"
+    to: "RTconsole"
+    scope: brand
+
+  - from: "github.com/redpanda-data/console"
+    to: "github.com/retone-projects/rtconsole"
+    scope: go_module
+    warn: "必须使用 go mod 工具链操作"
+
+  - from: "console.redpanda.com"
+    to: "console.retone.tech"
+    scope: domain

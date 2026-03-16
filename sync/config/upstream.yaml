@@ -1,0 +1,51 @@
+# upstream.yaml — 上游仓库版本追踪
+#
+# 每次完成上游同步后，必须手动更新 last_synced_commit 字段。
+# check_upstream_drift.sh 会读取此文件进行 drift 检测。
+
+projects:
+  rtmessage:
+    description: "Redpanda 核心消息引擎 (C++/Bazel)"
+    upstream_repo: "https://github.com/redpanda-data/redpanda"
+    upstream_branch: "dev"
+    local_ref_path: "Redpanda-data/redpanda"
+    target_project: "RTMessage"
+    binary_name: "rtmessage"
+    cli_name: "rtm"
+    last_synced_commit: ""   # 首次同步后填写，格式: git SHA (40位)
+    last_synced_date: ""     # 格式: YYYY-MM-DD
+    notes: >
+      C++ 核心，使用 Bazel 构建。rpk CLI 是独立的 Go 模块 (src/go/rpk/)，
+      可与 C++ 核心并行改名。注意: Kafka 协议兼容层不可改名。
+
+  rtconnect:
+    description: "Redpanda Connect 流处理器 (Go)"
+    upstream_repo: "https://github.com/redpanda-data/connect"
+    upstream_branch: "main"
+    local_ref_path: "Redpanda-data/connect"
+    target_project: "RTconnect"
+    binary_name: "rtconnect"
+    cli_name: "rtconnect"
+    go_module_from: "github.com/redpanda-data/connect"
+    go_module_to: "github.com/retone-projects/rtconnect"
+    last_synced_commit: ""
+    last_synced_date: ""
+    notes: >
+      基于 benthos (github.com/redpanda-data/benthos/v4)。
+      Go 模块路径改名需要专用工具链 (go mod + 批量 import rewrite)，
+      不可与普通字符串替换混用。
+
+  rtconsole:
+    description: "Redpanda Console 管理界面 (Go + TypeScript)"
+    upstream_repo: "https://github.com/redpanda-data/console"
+    upstream_branch: "main"
+    local_ref_path: "Redpanda-data/console"
+    target_project: "RTconsole"
+    binary_name: "rtconsole"
+    go_module_from: "github.com/redpanda-data/console"
+    go_module_to: "github.com/retone-projects/rtconsole"
+    last_synced_commit: ""
+    last_synced_date: ""
+    notes: >
+      风险最低，建议最先完成改名以验证整体流程。
+      前端 (frontend/) 几乎全部 SAFE，后端 API 路径需 REVIEW。
