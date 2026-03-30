@@ -37,7 +37,7 @@ projects:
 
   rtconsole:
     description: "Redpanda Console 管理界面 (Go + TypeScript)"
-    upstream_repo: "https://github.com/redpanda-data/console"
+    upstream_repo: "https://github.com/redpanda-data/console.git"
     upstream_branch: "main"
     local_ref_path: "Redpanda-data/console"
     target_project: "RTconsole"
